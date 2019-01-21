@@ -8,9 +8,8 @@ class HomeController extends Controller {
   }
   async test() {
     const query = this.ctx.query;
-    // console.log('this.ctx.query >>>');
-    // console.log(this.ctx.query);
     const username = query.username;
+    const age = query.age;
 
     this.ctx.body = [
       {
@@ -18,6 +17,7 @@ class HomeController extends Controller {
       },
       {
         username,
+        age,
       },
     ];
   }
@@ -35,6 +35,7 @@ class HomeController extends Controller {
       username: query.username,
       type: body.type,
       array: body.array,
+      num: body.num,
       age: query.age,
     };
   }

@@ -61,14 +61,14 @@ describe('test/aes-wrap.test.js', () => {
 
 
   it('should GET /test with query', async () => {
-    const param = { username: '12138 中文' };
+    const param = { username: '12138 中文', age: 1 };
 
     const aesConfig = app.config.aesWrap;
     const counter = aesConfig.counter;
     const key = aesConfig.key;
 
 
-    const paramText = JSON.stringify(param);
+    const paramText = encodeURIComponent(JSON.stringify(param));
     const paramTextBytes = aesjs.utils.utf8.toBytes(paramText);
     const aesCtr = new aesjs.ModeOfOperation.ctr(key, new aesjs.Counter(counter));
     const encryptedBuffer = aesCtr.encrypt(paramTextBytes);
@@ -93,15 +93,16 @@ describe('test/aes-wrap.test.js', () => {
 
     const decryptedText = aesjs.utils.utf8.fromBytes(decryptedBytes);
 
-    const body = JSON.parse(decryptedText);
+    const body = JSON.parse(decodeURIComponent(decryptedText));
 
     const expectdBody = [{
       userId: 1,
     }, {
       username: '12138 中文',
+      age: 1,
     }];
 
-    assert.deepEqual(expectdBody, body);
+    assert.deepStrictEqual(expectdBody, body);
   });
 
   it('should POST /testPost with query', async () => {
@@ -117,10 +118,15 @@ describe('test/aes-wrap.test.js', () => {
       array: [{
         userId: 1,
       }],
+      num: 2,
     };
 
-    const paramText = JSON.stringify(param);
+    const paramText = encodeURIComponent(JSON.stringify(param));
     const paramTextBytes = aesjs.utils.utf8.toBytes(paramText);
+    const paramText2 = aesjs.utils.utf8.fromBytes(paramTextBytes);
+
+    assert(paramText2 === paramText);
+
     const aesCtr = new aesjs.ModeOfOperation.ctr(key, new aesjs.Counter(counter));
     const encryptedBuffer = aesCtr.encrypt(paramTextBytes);
 
@@ -157,7 +163,7 @@ describe('test/aes-wrap.test.js', () => {
 
     const decryptedText = aesjs.utils.utf8.fromBytes(decryptedBytes);
 
-    const body = JSON.parse(decryptedText);
+    const body = JSON.parse(decodeURIComponent(decryptedText));
 
     const expectdBody = {
       query: 'o',
@@ -167,9 +173,10 @@ describe('test/aes-wrap.test.js', () => {
         userId: 1,
       }],
       age: 1,
+      num: 2,
     };
 
-    assert.deepEqual(body, expectdBody);
+    assert.deepStrictEqual(body, expectdBody);
   });
 
 

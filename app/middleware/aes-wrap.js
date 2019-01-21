@@ -93,17 +93,18 @@ module.exports = options => {
           const decryptedBytes = aesCtr.decrypt(encryptedBytes);
 
           const decryptedText = aesjs.utils.utf8.fromBytes(decryptedBytes);
-          extendQuery = JSON.parse(decryptedText);
+
+          // query 时使用 encodeURIComponent
+          const decryptedTextDecodeURI = decodeURIComponent(decryptedText);
+
+          extendQuery = JSON.parse(decryptedTextDecodeURI);
 
         } catch (error) {
           // ignore
-          // console.error(error);
+          console.error(error);
         }
 
-        ctx.query = Object.assign(
-          ctx.query,
-          extendQuery
-        );
+        _.extend(ctx.query, extendQuery);
       }
 
       let extendBody = {};
@@ -124,10 +125,7 @@ module.exports = options => {
           // console.error(error);
         }
 
-        ctx.request.body = Object.assign(
-          ctx.request.body,
-          extendBody
-        );
+        _.extend(ctx.request.body, extendBody);
       }
     }
 
