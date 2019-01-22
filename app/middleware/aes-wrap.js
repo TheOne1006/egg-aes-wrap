@@ -36,15 +36,15 @@ module.exports = options => {
 
 
   const middle = async (ctx, next) => {
-    const ignorePaths = options.ignorePaths;
+    const ignorePaths = options.ignorePaths || [];
     const ignoreFunction = options.ignore;
     const ignoreExportFunc = options.ignoreExport;
 
-    const outputEncoding = options.outputEncoding;
-    const inputEncoding = options.inputEncoding;
+    const outputEncoding = options.outputEncoding || 'hex';
+    const inputEncoding = options.inputEncoding || 'hex';
 
     const key = options.key;
-    const counter = options.counter;
+    const counter = options.counter || 1;
 
     let ignoreParse = false;
     let ignoreExport = false;
@@ -69,16 +69,12 @@ module.exports = options => {
     }
 
     // 没有修改, 执行 ignoreFunction
-    if (!ignoreParse && !ignoreExport) {
+    if (!ignoreParse && !ignoreExport && typeof ignore === 'function') {
       const allIgnore = await ignoreFunction(ctx);
       if (allIgnore) {
         ignoreParse = true;
         ignoreExport = true;
       }
-    }
-
-    if (!ignoreExport) {
-      ignoreExport = await ignoreExportFunc(ctx);
     }
 
     if (!ignoreParse) {
@@ -101,7 +97,7 @@ module.exports = options => {
 
         } catch (error) {
           // ignore
-          console.error(error);
+          // console.error(error);
         }
 
         _.extend(ctx.query, extendQuery);
@@ -130,6 +126,10 @@ module.exports = options => {
     }
 
     await next();
+
+    if (!ignoreExport && typeof ignoreExportFunc === 'function') {
+      ignoreExport = await ignoreExportFunc(ctx);
+    }
 
     // console.log(ctx.body);
 
