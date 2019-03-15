@@ -1,6 +1,6 @@
 {
   "name": "egg-aes-wrap",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "aes 加密处理 请求信息",
   "eggPlugin": {
     "name": "aesWrap"
@@ -11,9 +11,6 @@
     "egg-plugin"
   ],
   "dependencies": {
-    "aes-js": "^3.1.2",
-    "base64-arraybuffer": "^0.1.5",
-    "js-base64": "^2.5.1"
   },
   "devDependencies": {
     "autod": "^3.0.0",
@@ -24,7 +21,10 @@
     "egg-mock": "^3.13.0",
     "eslint": "^4.11.0",
     "eslint-config-egg": "^5.1.0",
-    "webstorm-disable-index": "^1.2.0"
+    "webstorm-disable-index": "^1.2.0",
+    "aes-js": "^3.1.2",
+    "base64-arraybuffer": "^0.1.5",
+    "js-base64": "^2.5.1"
   },
   "engines": {
     "node": ">=8.0.0"

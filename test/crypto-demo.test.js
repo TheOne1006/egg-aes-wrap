@@ -112,4 +112,30 @@ describe('test/crypto-demo.test.js', () => {
     assert.deepEqual(bigData, decryptedData);
 
   });
+
+  it('aes crypto aes-128-cbc genSign', async () => {
+    const secretKey = '0111011111111111';
+    const iv = '0111011111111111';
+    const text = 'hello';
+
+    const cipher = crypto.createCipheriv('aes-128-cbc', secretKey, iv);
+    cipher.update(text, 'utf8', 'hex');
+
+    const actual = cipher.final('hex');
+
+    assert(actual === 'b046fa283cfff9cfb3513e0fce38d600');
+  });
+
+  it('aes crypto aes-128-cbc deSign', async () => {
+    const secretKey = '0111011111111111';
+    const text = 'b046fa283cfff9cfb3513e0fce38d600';
+    const iv = '0111011111111111';
+
+    const cipher = crypto.createDecipheriv('aes-128-cbc', secretKey, iv);
+    cipher.update(text, 'hex', 'utf8');
+
+    const actual = cipher.final('utf8');
+
+    assert(actual === 'hello');
+  });
 });

@@ -1,7 +1,7 @@
 'use strict';
 
-const aesjs = require('aes-js');
 const assert = require('assert');
+const crypto = require('crypto');
 
 // const Base64 = require('js-base64').Base64;
 // const cookie = require('cookie');
@@ -10,11 +10,40 @@ const mock = require('egg-mock');
 
 describe('test/aes-wrap.test.js', () => {
   let app;
-  before(() => {
+  let genSign;
+  let deSign;
+
+  before(async () => {
     app = mock.app({
       baseDir: 'apps/aes-wrap-test',
     });
-    return app.ready();
+    await app.ready();
+
+    const options = app.config.aesWrap;
+
+    const outputEncoding = options.outputEncoding || 'hex';
+    const inputEncoding = options.inputEncoding || 'hex';
+
+    const algorithm = options.algorithm;
+    const key = options.key;
+    const iv = options.iv;
+    // 加密
+    genSign = function genSign(src) {
+      let sign = '';
+      const cipher = crypto.createCipheriv(algorithm, key, iv);
+      sign += cipher.update(src, 'utf8', outputEncoding);
+      sign += cipher.final(outputEncoding);
+      return sign;
+    };
+
+    // 解密
+    deSign = function deSign(sign) {
+      let src = '';
+      const cipher = crypto.createDecipheriv(algorithm, key, iv);
+      src += cipher.update(sign, inputEncoding, 'utf8');
+      src += cipher.final('utf8');
+      return src;
+    };
   });
 
   after(() => app.close());
@@ -63,17 +92,8 @@ describe('test/aes-wrap.test.js', () => {
   it('should GET /test with query', async () => {
     const param = { username: '12138 中文', age: 1 };
 
-    const aesConfig = app.config.aesWrap;
-    const counter = aesConfig.counter;
-    const key = aesConfig.key;
-
-
     const paramText = encodeURIComponent(JSON.stringify(param));
-    const paramTextBytes = aesjs.utils.utf8.toBytes(paramText);
-    const aesCtr = new aesjs.ModeOfOperation.ctr(key, new aesjs.Counter(counter));
-    const encryptedBuffer = aesCtr.encrypt(paramTextBytes);
-
-    const encryptedHexStr = aesjs.utils.hex.fromBytes(encryptedBuffer);
+    const encryptedHexStr = genSign(paramText);
     // console.log('encryptedHexStr');
     // console.log(encryptedHexStr);
 
@@ -84,14 +104,7 @@ describe('test/aes-wrap.test.js', () => {
 
 
     const payload = reqObj.body.spayload;
-
-    // parse
-    const payloadByte = aesjs.utils.hex.toBytes(payload);
-
-    const aesCtrParse = new aesjs.ModeOfOperation.ctr(key, new aesjs.Counter(counter));
-    const decryptedBytes = aesCtrParse.decrypt(payloadByte);
-
-    const decryptedText = aesjs.utils.utf8.fromBytes(decryptedBytes);
+    const decryptedText = deSign(payload);
 
     const body = JSON.parse(decodeURIComponent(decryptedText));
 
@@ -106,11 +119,6 @@ describe('test/aes-wrap.test.js', () => {
   });
 
   it('should POST /testPost with query', async () => {
-
-    const aesConfig = app.config.aesWrap;
-    const counter = aesConfig.counter;
-    const key = aesConfig.key;
-
     const param = { username: '12138', age: 1, filter: { where: { userId: 1 } } };
     const bodyInput = {
       payload: 'mysql',
@@ -122,25 +130,14 @@ describe('test/aes-wrap.test.js', () => {
     };
 
     const paramText = encodeURIComponent(JSON.stringify(param));
-    const paramTextBytes = aesjs.utils.utf8.toBytes(paramText);
-    const paramText2 = aesjs.utils.utf8.fromBytes(paramTextBytes);
-
-    assert(paramText2 === paramText);
-
-    const aesCtr = new aesjs.ModeOfOperation.ctr(key, new aesjs.Counter(counter));
-    const encryptedBuffer = aesCtr.encrypt(paramTextBytes);
-
     // query
-    const queryEncryptedHexStr = aesjs.utils.hex.fromBytes(encryptedBuffer);
+    const queryEncryptedHexStr = genSign(paramText);
     // console.log('encryptedHexStr');
     // console.log(encryptedHexStr);
 
     // body
     const bodyText = JSON.stringify(bodyInput);
-    const bodyTextBytes = aesjs.utils.utf8.toBytes(bodyText);
-    const aesCtr2 = new aesjs.ModeOfOperation.ctr(key, new aesjs.Counter(counter));
-    const bodyEncryptedBuffer = aesCtr2.encrypt(bodyTextBytes);
-    const bodyEncryptedHexStr = aesjs.utils.hex.fromBytes(bodyEncryptedBuffer);
+    const bodyEncryptedHexStr = genSign(bodyText);
 
     app.mockCsrf();
     const reqObj = await app.httpRequest()
@@ -153,15 +150,7 @@ describe('test/aes-wrap.test.js', () => {
 
 
     const payload = reqObj.body.spayload;
-
-
-    // parse
-    const payloadByte = aesjs.utils.hex.toBytes(payload);
-
-    const aesCtrParse = new aesjs.ModeOfOperation.ctr(key, new aesjs.Counter(counter));
-    const decryptedBytes = aesCtrParse.decrypt(payloadByte);
-
-    const decryptedText = aesjs.utils.utf8.fromBytes(decryptedBytes);
+    const decryptedText = deSign(payload);
 
     const body = JSON.parse(decodeURIComponent(decryptedText));
 

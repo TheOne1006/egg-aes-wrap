@@ -1,40 +1,11 @@
 'use strict';
 
 const _ = require('lodash');
-const aesjs = require('aes-js');
+const crypto = require('crypto');
 // const Base64 = require('js-base64').Base64;
 
 
 module.exports = options => {
-
-  const exportByteFormat = (outputEncoding, Bytes) => {
-    switch (outputEncoding) {
-      case 'base64':
-        return new Buffer(Bytes).toString('base64');
-      case 'utf8':
-        return aesjs.utils.utf8.fromBytes(Bytes);
-      case 'hex':
-        return aesjs.utils.hex.fromBytes(Bytes);
-      default:
-        return Bytes;
-    }
-  };
-
-
-  const inputStrToByte = (inputEncoding, inputStr) => {
-    switch (inputEncoding) {
-      case 'base64':
-        return new Buffer(inputStr, 'utf8');
-      case 'utf8':
-        return aesjs.utils.utf8.toBytes(inputStr);
-      case 'hex':
-        return aesjs.utils.hex.toBytes(inputStr);
-      default:
-        return inputStr;
-    }
-  };
-
-
   const middle = async (ctx, next) => {
     const ignorePaths = options.ignorePaths || [];
     const ignoreFunction = options.ignore;
@@ -43,13 +14,33 @@ module.exports = options => {
     const outputEncoding = options.outputEncoding || 'hex';
     const inputEncoding = options.inputEncoding || 'hex';
 
+    const algorithm = options.algorithm;
     const key = options.key;
-    const counter = options.counter || 1;
+    const iv = options.iv;
 
     let ignoreParse = false;
     let ignoreExport = false;
 
     const ignorePathsLen = ignorePaths.length;
+
+
+    // 加密
+    function genSign(src) {
+      let sign = '';
+      const cipher = crypto.createCipheriv(algorithm, key, iv);
+      sign += cipher.update(src, 'utf8', outputEncoding);
+      sign += cipher.final(outputEncoding);
+      return sign;
+    }
+
+    // 解密
+    function deSign(sign) {
+      let src = '';
+      const cipher = crypto.createDecipheriv(algorithm, key, iv);
+      src += cipher.update(sign, inputEncoding, 'utf8');
+      src += cipher.final('utf8');
+      return src;
+    }
 
     for (let index = 0; index < ignorePathsLen; index++) {
       const path = ignorePaths[index];
@@ -83,12 +74,7 @@ module.exports = options => {
       let extendQuery = {};
       if (queryEncryptedStr) {
         try {
-          const encryptedBytes = inputStrToByte(inputEncoding, queryEncryptedStr);
-          // const encryptedBytes = aesjs.utils.hex.toBytes(queryEncryptedStr);
-          const aesCtr = new aesjs.ModeOfOperation.ctr(key, new aesjs.Counter(counter));
-          const decryptedBytes = aesCtr.decrypt(encryptedBytes);
-
-          const decryptedText = aesjs.utils.utf8.fromBytes(decryptedBytes);
+          const decryptedText = deSign(queryEncryptedStr);
 
           // query 时使用 encodeURIComponent
           const decryptedTextDecodeURI = decodeURIComponent(decryptedText);
@@ -109,12 +95,7 @@ module.exports = options => {
 
       if (bodyEncryptedStr) {
         try {
-          const encryptedBytes = inputStrToByte(inputEncoding, bodyEncryptedStr);
-          // const encryptedBytes = aesjs.utils.hex.toBytes(bodyEncryptedStr);
-          const aesCtr = new aesjs.ModeOfOperation.ctr(key, new aesjs.Counter(counter));
-          const decryptedBytes = aesCtr.decrypt(encryptedBytes);
-
-          const decryptedText = aesjs.utils.utf8.fromBytes(decryptedBytes);
+          const decryptedText = deSign(bodyEncryptedStr);
           extendBody = JSON.parse(decryptedText);
         } catch (error) {
           // ignore
@@ -140,11 +121,7 @@ module.exports = options => {
       if (_.isObject(body)) {
         bodyText = JSON.stringify(body);
       }
-      const bodyTextBytes = aesjs.utils.utf8.toBytes(bodyText);
-      const aesCtr = new aesjs.ModeOfOperation.ctr(key, new aesjs.Counter(counter));
-
-      const encryptedBytes = aesCtr.encrypt(bodyTextBytes);
-      const encryptedStr = exportByteFormat(outputEncoding, encryptedBytes);
+      const encryptedStr = genSign(bodyText);
       // const encryptedStr = aesjs.utils.hex.fromBytes(encryptedBytes);
 
       // debug
