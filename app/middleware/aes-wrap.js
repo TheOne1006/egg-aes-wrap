@@ -27,9 +27,13 @@ module.exports = options => {
     // 加密
     function genSign(src) {
       let sign = '';
-      const cipher = crypto.createCipheriv(algorithm, key, iv);
-      sign += cipher.update(src, 'utf8', outputEncoding);
-      sign += cipher.final(outputEncoding);
+
+      if (typeof src === 'string') {
+        const cipher = crypto.createCipheriv(algorithm, key, iv);
+        sign += cipher.update(src, 'utf8', outputEncoding);
+        sign += cipher.final(outputEncoding);
+      }
+      
       return sign;
     }
 

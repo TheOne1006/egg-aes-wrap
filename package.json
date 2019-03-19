@@ -1,6 +1,6 @@
 {
   "name": "egg-aes-wrap",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "aes 加密处理 请求信息",
   "eggPlugin": {
     "name": "aesWrap"
